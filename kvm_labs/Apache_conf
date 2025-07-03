@@ -1,0 +1,161 @@
+1. Update Your System Packages
+
+Instruction:
+
+sudo apt update && sudo apt upgrade -y
+
+What it accomplishes:
+– Fetches the latest package lists and installs security updates.
+– Ensures you’re building on a fully patched, stable foundation.
+
+2. Set the Server’s Hostname
+
+Instruction:
+
+sudo hostnamectl set-hostname web-server
+
+What it accomplishes:
+– Assigns a human‑readable name (“web-server”) to your machine.
+– Helps in logs, monitoring, and when you manage multiple servers.
+
+3. Configure a Static IP (Netplan)
+
+Instruction:
+Edit /etc/netplan/01-netcfg.yaml to:
+
+network:
+  version: 2
+  ethernets:
+    ens3:
+      dhcp4: false
+      addresses: [10.10.0.10/24]
+      gateway4: 10.10.0.1
+      nameservers:
+        addresses: [8.8.8.8,1.1.1.1]
+
+Then apply:
+
+sudo netplan apply
+
+What it accomplishes:
+– Gives your server a fixed address on the LAN so clients always know where to find it.
+– Configures routing (gateway) and DNS for name resolution.
+
+4. Install Apache
+
+Instruction:
+
+sudo apt install apache2 -y
+
+What it accomplishes:
+– Pulls in Apache HTTP Server and its core dependencies.
+– Installs the service so you can serve web content.
+
+5. Enable & Start Apache Service
+
+Instruction:
+
+sudo systemctl enable apache2
+sudo systemctl start apache2
+
+What it accomplishes:
+– Configures Apache to launch at boot.
+– Starts the server now so you can verify it’s running.
+
+6. Verify Default Page
+
+Instruction:
+
+curl http://localhost
+
+What it accomplishes:
+– Confirms Apache is listening on port 80 and serving its default landing page.
+– Validates basic HTTP functionality before you customize anything.
+
+7. Open HTTP in the Firewall
+
+Instruction:
+
+sudo ufw allow 'Apache Full'
+
+What it accomplishes:
+– Opens ports 80 (HTTP) and 443 (HTTPS) in UFW.
+– Ensures external clients can reach your web server.
+
+8. Create a Site Directory & Test Page
+
+Instruction:
+
+sudo mkdir -p /var/www/myapp.com/public_html
+echo "<h1>It works!</h1>" | sudo tee /var/www/myapp.com/public_html/index.html
+
+What it accomplishes:
+– Establishes a clean directory structure for your first site.
+– Places a simple HTML file so you’ll see something when you browse later.
+
+9. Set Ownership & Permissions
+
+Instruction:
+
+sudo chown -R www-data:www-data /var/www/myapp.com
+find /var/www/myapp.com -type d -exec chmod 755 {} \;
+find /var/www/myapp.com -type f -exec chmod 644 {} \;
+
+What it accomplishes:
+– Gives Apache’s user (www-data) control of the files.
+– Applies secure, best‑practice permissions: directories can be entered, files are readable.
+
+10. Create & Enable a Virtual Host
+
+Instruction:
+Create /etc/apache2/sites-available/myapp.com.conf with:
+
+<VirtualHost *:80>
+  ServerName myapp.com
+  DocumentRoot /var/www/myapp.com/public_html
+
+  <Directory /var/www/myapp.com/public_html>
+    Options -Indexes +FollowSymLinks
+    AllowOverride All
+    Require all granted
+  </Directory>
+
+  ErrorLog ${APACHE_LOG_DIR}/myapp_error.log
+  CustomLog ${APACHE_LOG_DIR}/myapp_access.log combined
+</VirtualHost>
+
+Then run:
+
+sudo a2ensite myapp.com.conf
+sudo systemctl reload apache2
+
+What it accomplishes:
+– Tells Apache to serve myapp.com from your new folder.
+– Enables friendly logging and URL rewriting (via .htaccess) if needed.
+
+11. Test from Your Host Machine
+
+Instruction:
+
+    Add to your local /etc/hosts:
+
+10.10.0.10 myapp.com
+
+In browser or CLI:
+
+    curl http://myapp.com
+
+What it accomplishes:
+– Verifies name‑based virtual hosting works.
+– Confirms that your site is live and reachable by domain.
+
+12. (Optional) Enable HTTPS with Let’s Encrypt
+
+Instruction:
+
+sudo apt install certbot python3-certbot-apache -y
+sudo certbot --apache
+
+What it accomplishes:
+– Automates SSL cert issuance and renewal.
+– Secures your site traffic with HTTPS at no cost.
